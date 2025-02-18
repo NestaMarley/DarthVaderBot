@@ -1,0 +1,66 @@
+import random
+import json
+from flask import Flask, request, jsonify
+from transformers import pipeline
+
+app = Flask(__name__)
+
+# Load the conversational AI model
+chatbot = pipeline("conversational", model="microsoft/DialoGPT-medium")
+
+# Define some humorous responses
+humorous_responses = [
+    "Why did the chatbot cross the road? To optimize its route!",
+    "I'm on a seafood diet. I see food and I eat it!",
+    "Why do programmers prefer dark mode? Because light attracts bugs!"
+]
+
+def get_humorous_response():
+    return random.choice(humorous_responses)
+
+def translate_to_spanish(text):
+    translations = {
+        "hello": "hola",
+        "how are you?": "¿cómo estás?",
+        "thank you": "gracias",
+        "goodbye": "adiós"
+    }
+    return translations.get(text.lower(), text)
+
+def translate_to_swahili(text):
+    translations = {
+        "hello": "habari",
+        "how are you?": "habari gani?",
+        "thank you": "asante",
+        "goodbye": "kwa heri"
+    }
+    return translations.get(text.lower(), text)
+
+def respond(message, language='en'):
+    # Translate the message if necessary
+    if language == 'es':
+        message = translate_to_spanish(message)
+    elif language == 'sw':
+        message = translate_to_swahili(message)
+
+    # Get response from the chatbot
+    response = chatbot(message)
+
+    # Add humor to the response
+    if random.random() < 0.3:  # 30% chance to add humor
+        return f"{response[0]['generated_text']} Also, {get_humorous_response()}"
+    
+    return response[0]['generated_text']
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    user_input = data.get('message')
+    language = data.get('language', 'en')
+    
+    response = respond(user_input, language)
+    return jsonify({'response': response})
+
+if __name__ == "__main__":
+    app.run(debug=True)
+  
